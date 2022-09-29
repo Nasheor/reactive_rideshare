@@ -130,6 +130,6 @@ dmypy.json
 
 real_world_dataset/
 
-*.DS_Store
+.DS_Store
 
 .idea/
