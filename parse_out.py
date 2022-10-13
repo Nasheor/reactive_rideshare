@@ -17,6 +17,7 @@
 # --------------------------------------------------------
 
 import codecs
+import pandas as pd
 
 # ------------------------------------------
 # FUNCTION 01 - parse_out
@@ -61,7 +62,8 @@ def parse_out(output_file_name,
     my_output_stream.write(my_str)
     my_str = "-------------------------------------------------------------------------\n"
     my_output_stream.write(my_str)
-
+    ev_trips_served = {}
+    ev_energy_consumed = {}
     for ev_id in EV_IDs:
         my_str = "--------------------------------------\n"
         my_output_stream.write(my_str)
@@ -84,8 +86,25 @@ def parse_out(output_file_name,
         my_output_stream.write(my_str)
         my_str = "Num TPs served = " + str(num_TPs_served) + "\n"
         my_output_stream.write(my_str)
-        my_str = "TPs served = " + " ".join([ str(x) for x in sorted(TP_served_by_EV.keys()) ]) + "\n"
+        ev_trips_served[ev_id] = " ".join([ str(x) for x in sorted(TP_served_by_EV.keys()) ])
+        # if len(ev_trips_served[ev_id].split(" ")) > 0 and ev_trips_served[ev_id].split(" ")[0]!= '':
+        #     trips_served = list(map(int, ev_trips_served[ev_id].split(" ")))
+        #     # print(trips_served)
+        #     # print(len(trips_served))
+        #     ev_x, ev_y = EVs[ev_id][1][0][2], EVs[ev_id][1][0][3]
+        #     individual_distance = 0
+        #     for trip in trips_served:
+        #         trip_pickx, trip_picky = TPs[trip][0][1], TPs[trip][0][2]
+        #         trip_dropx, trip_dropy = TPs[trip][0][3], TPs[trip][0][4]
+        #         if individual_distance == 0:
+        #             individual_distance += calculateManhattanDistance(ev_x, ev_y, trip_pickx, trip_picky)
+        #         else:
+        #             individual_distance += calculateManhattanDistance(last_dropx, last_dropy, trip_pickx, trip_picky)
+        #         individual_distance += calculateManhattanDistance(trip_pickx, trip_picky, trip_dropx, trip_dropy)
+        #         last_dropx, last_dropy = trip_dropx, trip_dropy
+        my_str = "TPs served = " + ev_trips_served[ev_id] + "\n"
         my_output_stream.write(my_str)
+        ev_energy_consumed[ev_id] = total_energy
         my_str = "Total energy used = " + str(total_energy) + "\n"
         my_output_stream.write(my_str)
         my_str = "--------------------------------------\n"
@@ -123,3 +142,52 @@ def parse_out(output_file_name,
 
     # 6. We close the file
     my_output_stream.close()
+    parse_out_analysis(output_file_name,
+              num_trips_satisfied,
+              EVs,
+              TPs,
+              ev_trips_served,
+              ev_energy_consumed)
+
+def calculateManhattanDistance(pickup_x, pickup_y, drop_x, drop_y):
+    return (abs(pickup_x - drop_x) + abs(pickup_y - drop_y))
+
+def parse_out_analysis(output_file_name,
+              num_trips_satisfied,
+              EVs,
+              TPs,
+              ev_trips_served,
+              ev_energy_consumed
+             ):
+    outfile = './output_analysis/'+output_file_name.split('/')[2:][0]+'.xlsx'
+    print('Generating: '+outfile)
+    EV_IDs = sorted(EVs.keys())
+    data_columns = ['Vehicle-ID', 'Trips', 'Individual Coverage', 'Ride-share Distance',
+                    'Individual Energy', 'Ride-share Energy']
+    data = pd.DataFrame(columns=data_columns)
+    for ev_id in EV_IDs:
+        if len(ev_trips_served[ev_id].split(" ")) > 0 and ev_trips_served[ev_id].split(" ")[0]!= '':
+
+            # print(ev_trips_served[ev_id])
+            # print(len(ev_trips_served[ev_id]))
+            trips_served = list(map(int, ev_trips_served[ev_id].split(" ")))
+            # print(trips_served)
+            # print(len(trips_served))
+            ev_x, ev_y = EVs[ev_id][1][0][2], EVs[ev_id][1][0][3]
+            individual_distance = 0
+            for trip in trips_served:
+                trip_pickx, trip_picky = TPs[trip][0][1], TPs[trip][0][2]
+                trip_dropx, trip_dropy = TPs[trip][0][3], TPs[trip][0][4]
+                if individual_distance == 0:
+                    individual_distance += calculateManhattanDistance(ev_x, ev_y, trip_pickx, trip_picky)
+                else:
+                    individual_distance += calculateManhattanDistance(last_dropx, last_dropy, trip_pickx, trip_picky)
+                individual_distance += calculateManhattanDistance(trip_pickx, trip_picky, trip_dropx, trip_dropy)
+                last_dropx, last_dropy = trip_dropx, trip_dropy
+            row = [ev_id, ev_trips_served[ev_id], ev_energy_consumed[ev_id], individual_distance,
+                   ev_energy_consumed[ev_id], individual_distance]
+            data.loc[len(data)] = row
+        else:
+            continue
+
+    data.to_excel(outfile, index=False)

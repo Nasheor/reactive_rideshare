@@ -11,23 +11,9 @@ import datetime
 import math
 import os
 import shutil
+import pandas as pd
 
-# Constraints for spread mode
-# constraints = {
-#     'evs': [100, 100, 400, 1000, 100, 400, 1000, 200, 150, 150, 200],
-#     'tps': [300, 10000, 10000, 10000, 50000, 50000,
-#             50000, 4000, 4000, 10000, 10000],
-#     'flexiblity': [50, 30, 25, 15,  10, 5, 2],
-#     'energy': [0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-# }
 
-# Constraints for dynamic EVs
-# constraints= {
-#     'secs': [1, 2, 4, 8],
-#     'energy': [0.5, 1.0, 2.0, 6.0],
-#     'tps': [300, 1000],
-#     'ev_factor': [1.0, 2.0]
-# }
 constraints = {
     'secs': [1, 4, 16],
     'tps': [300, 1000, 10000],
@@ -36,35 +22,46 @@ constraints = {
     'flexiblity': [2, 10, 25, 50],
     'dispatch': ['start', 'spread']
 }
+
+# constraints = {
+#     'secs': [16],
+#     'tps': [300],
+#     'evs': [1.0],
+#     'sys_energy': [6.0],
+#     'flexiblity': [10],
+#     'dispatch': ['start']
+# }
+
 raw_petitions = []
 
 def writeToFile(time_horizon, grid_size, secs, evs, passengers, petitions, energy_required,
-                flexiblity, sys_energy, dispatch_mode, ev_factor, total_evs):
+                flexiblity, sys_energy, dispatch_mode, ev_factor, total_evs, instance_level_energy_produced):
     # outfile ="./instances/"+file_type+"/"+str(file_num)+".txt"
     # output_folder = './instances/evaluation_spread_mode/'+str(flexiblity)+'_FLEX_'+str(sys_energy)+'_SYS_ENERGY/'
     outfile = './instances/'+str(dispatch_mode)+'_'+str(len(secs))+'_SEC_'+str(sys_energy)+'_ENERGY_'+\
                     str(ev_factor)+'_EV-FACTOR_'+str(total_evs)+'_EV_'+\
               str(flexiblity)+'_FLEX_'+str(len(petitions))+"_TPS.txt"
+
+    excelfile = './analysis/'+str(dispatch_mode)+'_'+str(len(secs))+'_SEC_'+str(sys_energy)+'_ENERGY_'+\
+                    str(ev_factor)+'_EV-FACTOR_'+str(total_evs)+'_EV_'+\
+              str(flexiblity)+'_FLEX_'+str(len(petitions))+"_TPS.xlsx"
+
     outstream = codecs.open(outfile, "w", encoding="utf-8")
     outstream.write(str(grid_size)+" "+str(grid_size)+" "+str(time_horizon)+"\n")
     outstream.write(str(len(secs))+"\n")
     energy_produced = 0
+    analysis_data = pd.DataFrame(columns=['Petitions', 'Distance', 'Total Energy Produced', 'Total Energy Required'])
     for sec in secs:
         sec_str = str(sec.sec_id)+" "+str(sec.x_start)+" "+str(sec.y_start)+"\n"
         energy_produced += sec.total_energy
         outstream.write(sec_str)
-    # outstream.write(str(energy_produced[0])+"\n")
+
     outstream.write(str(len(evs))+"\n")
     for ev in evs:
         ev_str = str(ev.ev_id)+" "+str(ev.sec_id)+" "+\
                  str(ev.release_time)+" "+str(ev.battery_capacity)+" "+\
                  str(ev.num_passengers)+"\n"+str(0)+"\n"
         outstream.write(ev_str)
-
-    # outstream.write(str(len(passengers))+"\n")
-    # for per in passengers:
-    #     per_str = str(per.p_id)+" "+str(per.sec_id)+"\n"
-    #     outstream.write(per_str)
 
     outstream.write(str(len(petitions))+"\n")
     for petition in petitions:
@@ -73,11 +70,16 @@ def writeToFile(time_horizon, grid_size, secs, evs, passengers, petitions, energ
             if per.p_id == petition.passenger_id:
                 sec_id = per.sec_id
         allocation_status = -1
-        p_str = str(petition.petition_id)+" "+str(sec_id)+" "+str(allocation_status)+"\n"+str(int(petition.time))+" "+\
-                str(petition.pickup_x)+" "+str(petition.pickup_y)+" "+ \
+        p_str = str(petition.petition_id)+ " " +str(sec_id)+" "+str(allocation_status)+"\n"+str(int(petition.time))+" "+\
+                str(petition.pickup_x)+ " " +str(petition.pickup_y)+ " " + \
                 str(petition.drop_x) + " " +str(petition.drop_y)+" "+str(petition.early_start)+" "+ \
                 str(petition.late_start) + " " +str(petition.early_finish)+" "+str(petition.late_finish)+"\n"
+        row = [petition.petition_id, (petition.early_finish-petition.early_start),
+               instance_level_energy_produced[0], energy_required]
+        analysis_data.loc[len(analysis_data)] = row
         outstream.write(p_str)
+
+    analysis_data.to_excel(excelfile, index=False)
 
 
 def calculateManhattanDistance(pickup_x, pickup_y, drop_x, drop_y):
@@ -132,6 +134,7 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
                                              early_finish, late_start,
                                              late_finish, travel_time))
     energy_gen_time = time
+    instance_level_energy_produced = 0
     for i in range(num_sec):
         sec_id = i
         x_start = r.randint(0, grid_size-1)
@@ -150,17 +153,21 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
         else:
             energy_dis = distributions.generatePoissonDis(energy_gen_time, sys_energy,
                                                           energy_required, num_sec)
+
         total_energy_produced = 0
         for item in energy_dis:
             total_energy_produced += item
         secs.append(modal.Sec(sec_id, charge_generation, x_start, y_start,
                               x_end, y_end, charge, total_energy_produced))
+        instance_level_energy_produced += total_energy_produced
+
         for j in range(num_ev[i]):
             battery_capacity = grid_size
             ev_id = total_ev
             capacity = 6
             # Energy requirement for trip petitions is calculated using the metric
             charge_per_block = 1
+
             # Computing release time
             is_released = False
             total_energy = 0
@@ -185,7 +192,7 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
                                 capacity, charge_per_block, release_time))
             total_ev += 1
     writeToFile(time_horizon, grid_size, secs, evs, passengers, petitions,energy_required,
-                flexiblity, sys_energy, mode, ev_factor, total_evs)
+                flexiblity, sys_energy, mode, ev_factor, total_evs, instance_level_energy_produced)
 
 
 def parseRealData(mode):
@@ -252,6 +259,8 @@ def parseRealData(mode):
                         battery_capacity = grid_size
                         num_ev = int(total_charge_rate/battery_capacity)
                         ev_rate = int(num_ev/num_sec)
+                        if ev_rate == 0:
+                            ev_rate = 1
                         evs = {}
                         for i in range(num_sec):
                             evs[i] = ev_rate
@@ -259,7 +268,7 @@ def parseRealData(mode):
                                                    num_passengers, sys_energy, flexiblity,
                                                    block_size, distances, mode, ev_factor, num_ev)
 
-
+assignSecConstraints(num_sec, grid_size, )
 def main():
         modes = ['START', 'SPREAD']
         for dispatch_mode in modes:

@@ -3,26 +3,8 @@ from scipy.stats import poisson
 import numpy as np
 import random as r
 
-def generateWeibullDis(sample_size, sys_energy, energy_required, num_sec):
-    # shape = r.randint(4, 5)
-    # scale = r.randint(6, 8)
-    # x = weibull_min.rvs(shape, loc=0, scale=scale, size=sample_size)
-    sample_size = int(sample_size)
-    data = np.random.random((sample_size, 1))
-    total = [int((sys_energy * energy_required)/num_sec)]
-    return corrections(data, total, sample_size)
-
-def generateNormalDis(sample_size, sys_energy, energy_required, num_sec):
-    # scale = r.randint(8,10)
-    # x =  np.random.normal(loc=0, scale=scale, size=sample_size)
-    sample_size = int(sample_size)
-    data = np.random.random((sample_size, 1))
-    total = [int((sys_energy * energy_required)/num_sec)]
-    return corrections(data, total, sample_size)
 
 def generatePoissonDis(sample_size, sys_energy, energy_required, num_sec):
-    # scale = r.randint(4, 5)
-    # x = poisson.rvs(mu=scale, size=sample_size)
     sample_size = int(sample_size)
     data = np.random.random((sample_size, 1))
     total = [int((sys_energy * energy_required)/num_sec)]

@@ -1,27 +1,5 @@
 import pandas as pd
-
-# constraints_spread = {
-#     'evs': [100, 100, 400, 1000, 100, 400, 1000, 200, 150, 150, 200],
-#     'tps': [300, 10000, 10000, 10000, 50000, 50000,
-#             50000, 4000, 4000, 10000, 10000],
-#     'flexiblity': [50, 30, 25, 15,  10, 5, 2],
-#     'energy': [0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-# }
-# xlsx_data = {
-#     'Vehicles': [],
-#     'Petitions': [],
-#     'Flexiblity': [],
-#     'Energy': [],
-#     'Petitions Satisfied': [],
-# }
-
-# Constraints for dynamic EVs
-constraints= {
-    'secs': [1, 2, 4, 8],
-    'energy': [0.5, 1.0, 2.0, 6.0],
-    'tps': [300, 1000],
-    'ev_factor': [1.0, 2.0]
-}
+import numpy as np
 
 xlsx_data = {
     'Vehicles': [],
@@ -30,62 +8,89 @@ xlsx_data = {
     'Energy': [],
     'Petitions Satisfied': [],
     'Vehicle Factor': [],
-    'SEC': []
+    'SEC': [],
+    'Mode': [],
+    'Individual Trip Distance': [],
+    'Ride-share Distance': []
 }
+
+change_params = {
+    'Mode': ['START', 'SPREAD'],
+    'Vehicle Factor': ['1.0', '1.5', '2.0'],
+    'SEC': ['1', '4', '16'],
+    'Petitions': ['300', '1000', '10000'],
+    'Flexiblity': ['2', '10', '25', '50'],
+    'Energy': ['0.5', '1.0', '2.0', '4.0', '5.0', '6.0'],
+}
+
+# Filter data based on a specific value
+def filter_data(value, parsed_data):
+    # Here we store the values that are going to be changed while keeping one of the params constant
+    filename = './constraint_analysis/'+value+'_analysis.xlsx'
+    # These are the values we are going to keep constant as we change values from 'change_params'
+    column_names = ('Mode', 'Vehicle Factor', 'SEC', 'Petitions',
+                    'Flexiblity', 'Energy')
+    index = column_names.index(value)
+    column_names = column_names[:index] + column_names[index+1:]
+
+    # Filtration by iterating over the change_params
+    data = pd.DataFrame()
+    for param_one in change_params[column_names[0]]:
+        for param_two in change_params[column_names[1]]:
+            for param_three in change_params[column_names[2]]:
+                for param_four in change_params[column_names[3]]:
+                    for param_five in change_params[column_names[4]]:
+                        data = pd.concat([data, parsed_data[(parsed_data[column_names[0]] == param_one) &
+                                                        (parsed_data[column_names[1]] == param_two) &
+                                                        (parsed_data[column_names[2]] == param_three) &
+                                                        (parsed_data[column_names[3]] == param_four) &
+                                                       (parsed_data[column_names[4]] == param_five)]], join='outer')
+    data.to_excel(filename, index=False)
+
+
 if __name__ == '__main__':
-    analysis_file = 'output/analysis_dynamic_ev/solution.csv'
+    analysis_file = 'output/solution.csv'
+
+    # Reading the Evaluation file into a pandas frame
     analysis_data = pd.read_csv(analysis_file, delimiter=';', lineterminator='\n')
     analysis_data = analysis_data.reset_index()
+
+    # We are extracting the params we are interested from the evaluation file and preparing them for filtration
     for index, row in analysis_data.iterrows():
-        path = row['File'].split('/')[4:]
-        folder = path[0].split('_')
-        file = path[1].split('_')
-        xlsx_data['Vehicle Factor'].append(file[0])
-        xlsx_data['Vehicles'].append(file[1])
-        xlsx_data['Flexiblity'].append(15)
-        xlsx_data['SEC'].append(folder[0])
-        xlsx_data['Energy'].append(folder[2])
+        path = row['File'].split('/')[3:]
+        analysis_file = pd.read_excel('./output_analysis/'+path[0]+'.xlsx')
+        analysis_file.rename(columns={'Individual Coverage': 'Ride-share Distances', 'Ride-share Distance':'Individual Coverages'}, inplace=True)
+
+        individual_distance = 0
+        ride_share_distance = 0
+        for index, dist in analysis_file.iterrows():
+            individual_distance += float(dist['Individual Coverages'])
+            ride_share_distance += float(dist['Ride-share Distances'])
+        analysis_file.to_excel('./output_analysis/'+path[0] + '.xlsx')
+        file = path[0].split('_')
+        xlsx_data['Mode'].append(file[0])
+        xlsx_data['Vehicles'].append(file[7])
+        xlsx_data['Flexiblity'].append(file[9])
+        xlsx_data['SEC'].append(file[1])
+        xlsx_data['Energy'].append(file[3])
         xlsx_data['Petitions Satisfied'].append(row['Trips_Satisfied'])
-        xlsx_data['Petitions'].append(file[3])
-
-    for i in xlsx_data.keys():
-        print(len(xlsx_data[i]))
-    df = pd.DataFrame(data=xlsx_data, columns=('Vehicles','Vehicle Factor','SEC','Petitions','Petitions Satisfied','Flexiblity','Energy'))
-    df.to_excel('./output/analysis_dynamic_ev/evaluation.xlsx')
+        xlsx_data['Petitions'].append(file[11])
+        xlsx_data['Vehicle Factor'].append(file[5])
+        xlsx_data['Individual Trip Distance'].append(individual_distance)
+        xlsx_data['Ride-share Distance'].append(ride_share_distance)
 
 
+    # After extracting the data we convert it back into a pandas dataframe to start filtration based on our change params and change_against keys
+    parsed_data = pd.DataFrame(data=xlsx_data, columns=('Mode', 'Vehicles','Vehicle Factor','SEC','Petitions',
+                                                        'Petitions Satisfied','Flexiblity','Energy',
+                                                        'Ride-share Distance', 'Individual Trip Distance'))
 
-
-
-
-
-
-
-# if __name__ == '__main__':
-#     analysis_file = 'output/analysis_dynamic/solution.csv'
-#     analysis_data = pd.read_csv(analysis_file, delimiter=';', lineterminator='\n')
-#     analysis_data = analysis_data.reset_index()
-#     json_data = {}
-#     n_data_points = len(constraints['evs'])
-#     for i in range(n_data_points):
-#         file = str(constraints['evs'][i])+'_EV_'+str(constraints['tps'][i])+'_TPS.txt'
-#         for flex in constraints['flexiblity']:
-#             for energy in constraints['energy']:
-#                 folder = str(flex)+'_FLEX_'+str(energy)+'_SYS_ENERGY'
-#                 for index, row in analysis_data.iterrows():
-#                     file_type = row['File'].split('/')[4:]
-#                     if file_type[0] == folder and file_type[1] == file:
-#                         xlsx_data['Vehicles'].append(constraints['evs'][i])
-#                         xlsx_data['Petitions'].append(constraints['tps'][i])
-#                         xlsx_data['Flexiblity'].append(flex)
-#                         xlsx_data['Energy'].append(energy)
-#                         xlsx_data['Petitions Satisfied'].append(row['Trips_Satisfied'])
-#                         break
-#
-#     for i in xlsx_data.keys():
-#         print(len(xlsx_data[i]))
-#     df = pd.DataFrame(data=xlsx_data, columns=('Vehicles','Petitions','Petitions Satisfied','Flexiblity','Energy'))
-#     df.to_excel('./output/evaluation.xlsx')
+    # These are the values we are going to keep constant as we change values from 'change_params'
+    column_names = ('Mode', 'Vehicle Factor', 'SEC', 'Petitions',
+                    'Flexiblity', 'Energy')
+    # Values that are remain constant while we change other params
+    for column in column_names:
+        filter_data(column, parsed_data)
 
 
 

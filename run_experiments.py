@@ -40,35 +40,25 @@ def my_main(input_folder, output_folder):
     # 2. We open a file called solution.csv for writing
     solution_csv_stream = codecs.open(output_folder + "solution.csv", "w", encoding="utf-8")
 
-    # 3. We collect all the configurations to be analysed
-    list_of_folders = os.listdir(input_folder)
-    if (".DS_Store") in list_of_folders:
-        list_of_folders.remove(".DS_Store")
-    list_of_folders.sort()
+    list_of_files = os.listdir(input_folder)
+    if (".DS_Store") in list_of_files:
+        list_of_files.remove(".DS_Store")
+    list_of_files.sort()
 
-    # 4. We run the set of instances for each configuration
-    for folder in list_of_folders:
-        # 4.1. We create the output folder to create the instances
-        os.mkdir(output_folder + folder)
 
-        # 4.2. We collect the list of instances to be solved (in sorted order) under the desired configuration
-        list_of_files = os.listdir(input_folder + folder)
-        if (".DS_Store") in list_of_files:
-            list_of_files.remove(".DS_Store")
-        list_of_files.sort()
 
-        # 4.3. We traverse the instances
-        for file in list_of_files:
-            # 4.3.1. We get the name of the input and output files
-            input_file_name = input_folder + folder + "/" + file
-            output_file_name = output_folder + folder + "/" + file
+    # 4.3. We traverse the instances
+    for file in list_of_files:
+        # 4.3.1. We get the name of the input and output files
+        input_file_name = input_folder + file
+        output_file_name = output_folder + file
 
-            # 4.3.2. We solve the instance
-            num_trips_satisfied = run_instance.my_main(input_file_name, output_file_name)
+        # 4.3.2. We solve the instance
+        num_trips_satisfied = run_instance.my_main(input_file_name, output_file_name)
 
-            # 4.3.3. We write the result to the solution file
-            my_str = input_file_name + ";" + str(num_trips_satisfied) + "\n"
-            solution_csv_stream.write(my_str)
+        # 4.3.3. We write the result to the solution file
+        my_str = input_file_name + ";" + str(num_trips_satisfied) + "\n"
+        solution_csv_stream.write(my_str)
 
     # 5. close the solution.csv file
     solution_csv_stream.close()
@@ -90,8 +80,8 @@ def my_main(input_folder, output_folder):
 # --------------------------------------------------------
 if __name__ == '__main__':
     # 1. We get the name of the input and output folder
-    input_folder = "./instance_generator/instances/evaluation_dynamic_ev/"
-    output_folder = "./output/analysis_dynamic_ev/"
+    input_folder = "./instance_generator/instances/"
+    output_folder = "./output/"
 
     if (len(sys.argv) > 1):
         input_folder = sys.argv[1]
