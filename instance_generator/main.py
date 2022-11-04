@@ -122,8 +122,8 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
         travel_time = distance * time_per_block
         energy_required += travel_time
         early_start = time + int((flexiblity/100) * trip_rate[num_passengers-1])
-        early_finish = early_start + travel_time
         late_start = early_start + int((flexiblity/100) * trip_rate[num_passengers-1])
+        early_finish = early_start + travel_time
         late_finish = late_start + travel_time
         if late_finish > time_horizon:
             time_horizon = late_finish
@@ -142,22 +142,13 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
         x_end = x_start
         y_end = y_start
         charge = 0
-        charge_generation = r.randint(1,3)
-        energy_dis = []
-        if charge_generation == 1:
-            energy_dis = distributions.generateWeibullDis(energy_gen_time, sys_energy,
-                                                          energy_required, num_sec)
-        elif charge_generation == 2:
-            energy_dis = distributions.generateNormalDis(energy_gen_time, sys_energy,
-                                                         energy_required, num_sec)
-        else:
-            energy_dis = distributions.generatePoissonDis(energy_gen_time, sys_energy,
+        energy_dis = distributions.generatePoissonDis(energy_gen_time, sys_energy,
                                                           energy_required, num_sec)
 
         total_energy_produced = 0
         for item in energy_dis:
             total_energy_produced += item
-        secs.append(modal.Sec(sec_id, charge_generation, x_start, y_start,
+        secs.append(modal.Sec(sec_id, 1, x_start, y_start,
                               x_end, y_end, charge, total_energy_produced))
         instance_level_energy_produced += total_energy_produced
 
@@ -231,6 +222,8 @@ def parseRealData(mode):
     end_time = start_time + datetime.timedelta(hours = n_hours)
     block_size = 1
 
+    # for petition in
+
     for sec in constraints['secs']:
         for tp in constraints['tps']:
             for ev_factor in constraints['evs']:
@@ -249,8 +242,8 @@ def parseRealData(mode):
                                    datetime.datetime.combine(datetime.date.today(), start_time.time())
                             trip_rate.append(diff.total_seconds() - 3600)
                             if row['trip_distance'] == 0:
-                                distances.append(1)
-                                total_distance += 1
+                                distances.append(4)
+                                total_distance += 4
                             else:
                                 distances.append(math.ceil(row['trip_distance']))
                                 total_distance += math.ceil(row['trip_distance'])
@@ -268,7 +261,6 @@ def parseRealData(mode):
                                                    num_passengers, sys_energy, flexiblity,
                                                    block_size, distances, mode, ev_factor, num_ev)
 
-assignSecConstraints(num_sec, grid_size, )
 def main():
         modes = ['START', 'SPREAD']
         for dispatch_mode in modes:

@@ -70,8 +70,8 @@ def my_main(input_file_name, output_file_name):
 # --------------------------------------------------------
 if __name__ == '__main__':
     # 1. We get the name of the input and output folder
-    input_file = "./instance_generator/instances/SPREAD_16_SEC_0.5_ENERGY_1.0_EV-FACTOR_11_EV_50_FLEX_300_TPS.txt"
-    output_file = "./b_should_be_easy.txt"
+    input_file = "./instance_generator/instances/START_1_SEC_0.5_ENERGY_1.0_EV-FACTOR_11_EV_2_FLEX_300_TPS.txt"
+    output_file = "./output.txt"
 
     if (len(sys.argv) > 1):
         input_file = sys.argv[1]

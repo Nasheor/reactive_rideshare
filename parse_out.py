@@ -160,10 +160,11 @@ def parse_out_analysis(output_file_name,
               ev_energy_consumed
              ):
     outfile = './output_analysis/'+output_file_name.split('/')[2:][0]+'.xlsx'
+    # outfile = output_file_name+'.xlsx'
     print('Generating: '+outfile)
     EV_IDs = sorted(EVs.keys())
-    data_columns = ['Vehicle-ID', 'Trips', 'Individual Coverage', 'Ride-share Distance',
-                    'Individual Energy', 'Ride-share Energy']
+    data_columns = ['Vehicle-ID', 'Trips','Number of Trips' ,'Sequential Coverage', 'Ride-share Coverage',
+                    'Individual Coverage', 'Individual Cars' ]
     data = pd.DataFrame(columns=data_columns)
     for ev_id in EV_IDs:
         if len(ev_trips_served[ev_id].split(" ")) > 0 and ev_trips_served[ev_id].split(" ")[0]!= '':
@@ -174,18 +175,25 @@ def parse_out_analysis(output_file_name,
             # print(trips_served)
             # print(len(trips_served))
             ev_x, ev_y = EVs[ev_id][1][0][2], EVs[ev_id][1][0][3]
+            sequential_distance = 0
             individual_distance = 0
             for trip in trips_served:
                 trip_pickx, trip_picky = TPs[trip][0][1], TPs[trip][0][2]
                 trip_dropx, trip_dropy = TPs[trip][0][3], TPs[trip][0][4]
-                if individual_distance == 0:
-                    individual_distance += calculateManhattanDistance(ev_x, ev_y, trip_pickx, trip_picky)
+                if sequential_distance == 0:
+                    sequential_distance += calculateManhattanDistance(ev_x, ev_y, trip_pickx, trip_picky)
                 else:
-                    individual_distance += calculateManhattanDistance(last_dropx, last_dropy, trip_pickx, trip_picky)
-                individual_distance += calculateManhattanDistance(trip_pickx, trip_picky, trip_dropx, trip_dropy)
+                    sequential_distance += calculateManhattanDistance(last_dropx, last_dropy, trip_pickx, trip_picky)
+                sequential_distance += calculateManhattanDistance(trip_pickx, trip_picky, trip_dropx, trip_dropy)
+                individual_distance += (TPs[trip][0][8] - TPs[trip][0][6])
                 last_dropx, last_dropy = trip_dropx, trip_dropy
-            row = [ev_id, ev_trips_served[ev_id], ev_energy_consumed[ev_id], individual_distance,
-                   ev_energy_consumed[ev_id], individual_distance]
+            # Distance travelled before reached home
+            tmp_one = EVs[ev_id][1][len(EVs[ev_id][1]) - 1][8]
+            # Distance travelled to reach home
+            tmp_two = EVs[ev_id][1][len(EVs[ev_id][1]) - 1][9]
+            ev_energy_consumed[ev_id] = 100 - tmp_two
+            row = [ev_id, ev_trips_served[ev_id],len(trips_served), sequential_distance,
+                   ev_energy_consumed[ev_id], individual_distance, len(trips_served)]
             data.loc[len(data)] = row
         else:
             continue
