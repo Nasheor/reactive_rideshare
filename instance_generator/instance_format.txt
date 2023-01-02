@@ -21,7 +21,7 @@
         * C. Integer. EV_release_time.
         * D. Integer. EV_battery_energy.
         * E. Integer. EV_max_passengers.
-        - Second line. Schedule_Num_Movs. Integer. Number of movements of the schedule.
+        - Second line. Schedule_Num_Movs. Integer. A number of movements of the schedule.
         - Next Schedule_Num_Movs representing each move of the schedule,
           as the tuple( TA, TB, AX, AY, BX, BY, PS, PE, ES, EE, TL, LW, TD ), where:
            (00) TA. Integer => Time of the start of the movement.

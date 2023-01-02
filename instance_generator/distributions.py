@@ -1,10 +1,9 @@
 from scipy.stats import weibull_min
-from scipy.stats import poisson
 import numpy as np
 import random as r
 
 
-def generatePoissonDis(sample_size, sys_energy, energy_required, num_sec):
+def generateWeibullDis(sample_size, sys_energy, energy_required, num_sec):
     sample_size = int(sample_size)
     data = np.random.random((sample_size, 1))
     total = [int((sys_energy * energy_required)/num_sec)]

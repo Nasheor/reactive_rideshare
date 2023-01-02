@@ -142,7 +142,7 @@ def assignRealWorldConstraints(time_horizon, grid_size, num_sec, num_ev,
         x_end = x_start
         y_end = y_start
         charge = 0
-        energy_dis = distributions.generatePoissonDis(energy_gen_time, sys_energy,
+        energy_dis = distributions.generateWeibullDis(energy_gen_time, sys_energy,
                                                           energy_required, num_sec)
 
         total_energy_produced = 0
@@ -197,8 +197,9 @@ def parseRealData(mode):
     while not valid_file:
         root = tk.Tk()
         root.withdraw()
-        filename = filedialog.askopenfilename(initialdir="./real_world_dataset", title="Input Data set",
+        filename = filedialog.askopenfilename(initialdir="./real_world_dataset_nyc_2018/", title="Input Data set",
                                               filetypes=[("Excel files","*.xlsx"), ("CSV files", "*.csv")])
+        print(filename)
         file = filename.split("/")[-1].split(".")[0]
         file_type = filename.split("/")[-1].split(".")[1]
         if file_type == "csv":
@@ -206,7 +207,9 @@ def parseRealData(mode):
             valid_file = True
             break
         else:
-            print("Invalid File Type. Supported file type is .csv ")
+            data = pd.read_excel(filename)
+            valid_file = True
+            break
     keys = ['VendorID', 'lpep_pickup_datetime', 'lpep_dropoff_datetime', 'PULocationID', 'DOLocationID', 'trip_distance']
     data = data.filter(items=keys)
     data['pickup'] = pd.to_datetime(data['lpep_pickup_datetime'], format='%m/%d/%Y   %H:%M:%S %p')

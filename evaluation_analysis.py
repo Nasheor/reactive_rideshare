@@ -14,7 +14,7 @@ xlsx_data = {
     'Mode': [],
     'Individual Trip Distance': [],
     'Ride-share Distance': [],
-    'Sequential Distance' : [],
+    'Sequential Distance': [],
     'Individual Trip Cars': [],
     'Ride-share Trip Cars': [],
     'Sequential Trip Cars': []
